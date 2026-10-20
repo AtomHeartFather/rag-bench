@@ -2,7 +2,7 @@
 """RAG-benchmark stand harness.
 
 Subcommands:
-  gen-corpus  --scale 1k [--limit N]   # world + docs + chunks via lemond LLM
+  gen-corpus  --scale 1k [--limit N]   # world + docs + chunks via local LLM
   gen-queries                    # 300 queries (5 levels x 60), scale-agnostic
   index       --variant file|fts|rag --scale 1k
   search      --variant file|fts|rag --scale 1k [--k 10] [--limit N]
@@ -21,15 +21,15 @@ BASE = Path(__file__).resolve().parent.parent
 QDRANT = "http://127.0.0.1:6333"
 EMBED = "http://127.0.0.1:8002/v1"
 LLM = "http://127.0.0.1:13305/api/v1"
-LLM_MODEL = "Qwen3.8-27B-Uncensored-GGUF-Qwen3.8-27B-Uncensored-Q8_0"
-EMBED_MODEL_CANDIDATES = ["bge-m3", "/home/egor/.hermes/embed-models/bge-m3-Q4_K_M.gguf"]
+LLM_MODEL = os.environ.get("BENCH_LLM_MODEL", "local-llm")
+EMBED_MODEL_CANDIDATES = ["bge-m3", "bge-m3-Q4_K_M.gguf"]
 EMBED_DIM = 1024
 CHUNK_TARGET = 1500
 SCALES = {"1k": 100, "10k": 1000, "50k": 5000, "100k": 10000,
           # real-data scales (corpus/raw_real): sizes are placeholder; see corpus/chunks_*.jsonl
           "real-rag-10k": 10000, "real-rag-66k": 66581, "real-mh": 609}
 ENTITY_MIX = {"1k": (50, 25, 25)}  # clients, vendors, projects for 1k
-HOST_SSH = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "egor@172.17.0.1"]
+HOST_SSH = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "HOST"]  # host for RAM sampling of Qdrant/embed server
 
 TYPE_RU = {"client": "клиент", "vendor": "вендор", "project": "проект"}
 TYPE_PREFIX = {"client": "c", "vendor": "v", "project": "p"}
@@ -119,7 +119,7 @@ def write_jsonl(p, rows):
             f.write(json.dumps(r, ensure_ascii=False) + '\n')
 
 
-# ---------------- LLM (lemond) ----------------
+# ---------------- LLM (local, OpenAI-compatible) ----------------
 class LLMStats:
     def __init__(self):
         self.calls = 0

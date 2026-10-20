@@ -5,7 +5,7 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
 VARIANTS = ['file', 'fts', 'rag']
-SCALES = ['1k', '10k', '50k', '100k', 'real-mh', 'real-rag-10k', 'real-rag-66k']
+SCALES = ['real-mh', 'real-rag-10k', 'real-rag-66k']
 
 ROWS = []  # (variant, scale, metric, value)
 
@@ -80,7 +80,7 @@ def main():
 
     L = []
     L.append('# RAG-бенчмарк: file (BM25) vs fts (SQLite FTS5) vs rag (Qdrant+bge-m3)\n')
-    L.append('Матрица: 3 варианта × масштабы × 300 запросов (5 уровней × 60).\n')
+    L.append('Матрица: 3 варианта × 3 реальных датасета (5k–66k чанков), 1800 запросов.\n')
 
     def table(title, metric, variants, scales, pct=False, key=lambda m: m):
         L.append(f'\n## {title}\n')
@@ -96,7 +96,7 @@ def main():
             L.append(' | '.join(row))
 
     active_scales = [s for s in SCALES if any((BASE / 'results' / f'{v}_{s}' / 'metrics.json').exists() for v in VARIANTS)]
-    table('Релевантность (реtrieval, 300 запросов)', 'Hit@10', VARIANTS, active_scales, pct=True,
+    table('Релевантность (retrieval, Hit@10)', 'Hit@10', VARIANTS, active_scales, pct=True,
           key=lambda m: (m.get('overall') or {}).get('hit@10'))
     table('МRR@10', 'MRR@10', VARIANTS, active_scales, key=lambda m: (m.get('overall') or {}).get('mrr@10'))
     table('Hit@5', 'Hit@5', VARIANTS, active_scales, pct=True,
@@ -138,17 +138,6 @@ def main():
             j = m.get('judge') or {}
             L.append(f"{s} | {v} | {m.get('embed_tokens') or '—'} | {m.get('embed_tok_per_s') or '—'} | "
                      f"{j.get('llm_prompt_tokens') or '—'} | {j.get('llm_completion_tokens') or '—'}")
-
-    # corpus gen cost
-    L.append('\n## Генерация корпуса (LLM)\n')
-    L.append('масштаб | сущности | чанки | символы | LLM-вызовы | prompt ток | completion ток | wall с')
-    L.append('---|---|---|---|---|---|---|---')
-    for s in active_scales:
-        p = BASE / 'results' / f'gen_corpus_{s}.json'
-        if p.exists():
-            d = json.loads(p.read_text())
-            L.append(f"{s} | {d.get('entities')} | {d.get('chunks')} | {d.get('chars')} | "
-                     f"{d.get('llm_calls')} | {d.get('llm_prompt_tokens')} | {d.get('llm_completion_tokens')} | {d.get('llm_wall_s')}")
 
     (out / 'report.md').write_text('\n'.join(L))
     print(f'wrote summary.csv ({len(ROWS)} rows) and report.md')

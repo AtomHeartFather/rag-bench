@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Full run over real-data scales: index x3 + search x3 per scale, then report.
-cd /home/egor/workspace/tasks/rag-benchmark || exit 99
-PY=/home/egor/.hermes/installs/b9b919e706bd0f05/environments/a626f35f6f6549eca5868f86a6a2bb32/venv/bin/python3
+cd "$(dirname "$0")/.." || exit 99
+PY=${PY:-python3}
 STATUS=logs/real_status.txt
 : > "$STATUS"
 echo "=== [$(date '+%F %T')] REAL_PIPELINE_START ===" >> "$STATUS"
